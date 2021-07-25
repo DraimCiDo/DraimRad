@@ -1,0 +1,7 @@
+name: DraimRad
+version: ${project.version}
+main: me.draimgoose.draimrad
+api-version: 1.17
+authors: [ DraimGooSe ]
+description: Гейм-Механика для нового режима от DraimGooSe
+website: draimcido.ru
