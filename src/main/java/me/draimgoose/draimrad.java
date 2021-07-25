@@ -1,16 +1,49 @@
 package me.draimgoose;
 
+import com.google.common.io.Files;
+import me.draimgoose.commands.MainComand;
+import me.draimgoose.commands.MainCommandTab;
+import me.draimgoose.events.CheckLight;
+import me.draimlib.settings.Configuration;
+import me.draimlib.settings.Lang;
+import me.draimlib.settings.Settings;
+import me.draimlib.utils.Messages;
+import me.draimlib.utils.MessagesManager;
 import org.bukkit.*;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.permissions.Permission;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Set;
 
 
 public final class draimrad extends JavaPlugin {
 
+    private Settings settings;
+    private Lang lang;
+    private MessagesManager messagesManager;
+
     @Override
     public void onEnable() {
+        Messages.log(this, "&9=============================================================");
+        Messages.log(this, "&2DraimRad &av" + this.getDescription().getVersion());
+
+        Messages.log(this, "&9=============================================================");
+        Messages.log(this, "&2Создано DraimGooSe для DraimCiDo");
+        Messages.log(this, "&9=============================================================");
+        this.updateConfig();
+        this.loadConfigManager();
+        Messages.log(this, "&2Чтение загружено!");
+        this.registerCommand();
+        Messages.log(this, "&2Команды загружены!");
+        this.registerPermissions();
+        Messages.log(this, "&9=============================================================");
         Bukkit.getPluginManager().registerEvents(new Handler(), this);
         BukkitScheduler scheduler = getServer().getScheduler();
         scheduler.cancelTasks(this);
@@ -22,12 +55,59 @@ public final class draimrad extends JavaPlugin {
         scheduler.scheduleSyncRepeatingTask(this, this::voice, 0, 35);
         scheduler.scheduleSyncRepeatingTask(this, new Handler()::damagearmor, 0L,8);
         saveConfig();
-
     }
 
-    @Override
-    public void onDisable() {
+    public void loadConfigManager() {
+        this.settings = new Settings(this);
+        Messages.log(this, "&2Конфигурация загружена!");
+        this.lang = new Lang(settings.getLang(), this);
+        Messages.log(this, "&2Язык загружен! &7[" + settings.getLang() + "]");
+        if (this.messagesManager != null) {
+            messagesManager.setLang(lang);
+            messagesManager.setSettings(settings);
+        } else
+            this.messagesManager = new MessagesManager(settings, lang, this);
+    }
 
+    public void updateConfig() {
+        Configuration.updateConfig("lang/ru_RU.yml", this);
+        Configuration oldConfig = new Configuration("config.yml", this);
+        if (oldConfig.contains("")) {
+            try {
+                Files.move(oldConfig.getFile(), new File(oldConfig.getFile().getParentFile(), "old_config.yml"));
+                oldConfig = new Configuration("old_config.yml", this);
+                this.settings = new Settings(this);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        Configuration.updateConfig("config.yml", this);
+    }
+
+    public void registerCommand() {
+        PluginCommand mainCommand = this.getCommand("draimr");
+        if (mainCommand != null) {
+            mainCommand.setExecutor(new MainComand(this));
+            mainCommand.setTabCompleter(new MainCommandTab());
+        }
+    }
+
+    public void registerPermissions() {
+        PluginManager pm = getServer().getPluginManager();
+        Set<Permission> permissions = pm.getPermissions();
+        int n = 0;
+        for (EntityType entityType : EntityType.values()) {
+            Permission perm = new Permission("draimrad.bypass.entity." + entityType.name());
+            if (!permissions.contains(perm)) {
+                pm.addPermission(perm);
+                n++;
+            }
+        }
+        Messages.log(this, "&2Права для существ загружены! &7[" + n + "]");
+    }
+
+    public MessagesManager getMessageManager() {
+        return messagesManager;
     }
 
     public void voice(){
@@ -82,5 +162,10 @@ public final class draimrad extends JavaPlugin {
                 }
             }
         }
+    }
+
+    @Override
+    public void onDisable() {
+
     }
 }
